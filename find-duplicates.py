@@ -128,6 +128,10 @@ def main(path, chunk_size, recursive, force, dry_run):
     duplicates = check_for_duplicates(path, chunk_size, recursive)
     logger.info(f'Number of duplicates found: {sum([len(files_set) for __, files_set in duplicates.items()])}')
 
+    if len(duplicates) == 0:
+        logger.info('No duplicates found. Exiting.')
+        return
+
     if dry_run:
         logger.warning('Dry run is enabled. No deletions will be performed.')
 
