@@ -41,8 +41,9 @@ def check_for_duplicates(path, chunk_size, recursive, hash=hashlib.sha1):
         for filename in os.listdir(path):
             try:
                 full_path = os.path.realpath(os.path.join(path, filename))
-                file_size = os.path.getsize(full_path)
-                hashes_by_size[file_size].append(full_path)
+                if os.path.isfile(full_path):
+                    file_size = os.path.getsize(full_path)
+                    hashes_by_size[file_size].append(full_path)
             except (OSError,):
                     # not accessible (permissions, etc) - pass on
                     logger.warning(f'Error reading file: {os.path.join(dirpath, filename)}')
