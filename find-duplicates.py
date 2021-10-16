@@ -79,7 +79,7 @@ def check_for_duplicates(path, chunk_size, recursive, hash=hashlib.sha1):
                 hashes_on_1k[(small_hash, size_in_bytes)].append(filename)
             except (OSError,):
                 # the file access might've changed till the exec point got here 
-                logger.warning(f'Error reading file: {os.path.join(dirpath, filename)}')
+                logger.warning(f'Error reading file: {os.path.join(path, filename)}')
                 continue
 
     logger.info('Comparing full hashes')
