@@ -124,21 +124,26 @@ def find_keep_file(files):
     return files[keep_file_idx]
 
 
-def main(path, chunk_size, recursive, force):
+def main(path, chunk_size, recursive, force, dry_run):
     duplicates = check_for_duplicates(path, chunk_size, recursive)
     logger.info(f'Number of duplicates found: {sum([len(files_set) for __, files_set in duplicates.items()])}')
+
+    if dry_run:
+        logger.warning('Dry run is enabled. No deletions will be performed.')
+
     if not force:
         delete = single_yes_or_no_question('Delete duplicates?')
     
-    if delete:    
+    if delete or force:
         for key_file, files_set in duplicates.items():
             files_set.add(key_file)
             keep_file = find_keep_file(list(files_set))
-            logger.info(f'Keeping: {os.path.basename(keep_file)}')
+            logger.info(f'Keep: {os.path.basename(keep_file)}')
             files_set.remove(keep_file)
             for f in files_set:
-                logger.info(f'Deleting: {os.path.basename(f)}')
-                os.remove(f)
+                logger.info(f'Delete: {os.path.basename(f)}')
+                if not dry_run:
+                    os.remove(f)
 
 
 if __name__ == "__main__":
@@ -149,10 +154,11 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--chunk-size', default=1024, type=int, help='Chunk size for heuristic, smaller values are generally faster but if many files have identical starting chunks, performance degrades as more full hashes are computed')
     parser.add_argument('-f', '--force', action='store_true', help='Delete duplicates without prompting')
     parser.add_argument('-r', '--recursive', default=False, action='store_true', help='Recursively process media')
+    parser.add_argument('--dry-run', default=False, action='store_true', help='Dry run deletion (no files deleted)')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
     logger = logging.getLogger('find-duplicates')
     
-    main(args.path, args.chunk_size, args.recursive, force=args.force)
+    main(args.path, args.chunk_size, args.recursive, force=args.force, dry_run=args.dry_run)
 
