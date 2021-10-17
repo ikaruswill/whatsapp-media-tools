@@ -52,22 +52,42 @@ def main(path, recursive, mod):
     abspath_len = len(abspath) + 1
     for i, (path, filename) in enumerate(filepaths):
         filepath = os.path.join(path, filename)
+        logging.info(f'{i + 1:>{progress_digits}}/{num_files} - {filepath[abspath_len:]}')
         if filename.endswith('.mp4') or filename.endswith('.3gp'):
-            date = get_datetime(filename)
+            try: 
+                date = get_datetime(filename)
+            except IndexError:
+                logging.warning('Invalid filename format, skipping')
+                continue
             modTime = date.timestamp()
             os.utime(filepath, (modTime, modTime))
 
         elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
-            exif_dict = piexif.load(filepath)
-            exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
-            exif_bytes = piexif.dump(exif_dict)
-            piexif.insert(exif_bytes, filepath)
-            if mod:
-                date = get_datetime(filename)
-                modTime = date.timestamp()
-                os.utime(filepath, (modTime, modTime))
+            try:
+                exif_dict = piexif.load(filepath)
+                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
+                   logger.info('Exif date already exists, skipping')
+                else:
+                    try:
+                        exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
+                        exif_bytes = piexif.dump(exif_dict)
+                    except ValueError:
+                        logger.warning(f'Invalid exif, overwriting with new exif')
+                        exif_dict = {'Exif': {piexif.ExifIFD.DateTimeOriginal: get_exif_datestr(filename)}}
+                        exif_bytes = piexif.dump(exif_dict)
+                    piexif.insert(exif_bytes, filepath)
+                if mod:
+                    date = get_datetime(filename)
+                    modTime = date.timestamp()
+                    os.utime(filepath, (modTime, modTime))
+            except piexif.InvalidImageDataError:
+                logger.warning(f'Invalid image data, skipping')
+                continue
+            except IndexError:
+                logger.warning('Invalid filename format, skipping')
+                continue
 
-        logging.info(f'{i + 1:>{progress_digits}}/{num_files} - {filepath[abspath_len:]}')
+        
     logging.info('Finished processing files')
 
 
