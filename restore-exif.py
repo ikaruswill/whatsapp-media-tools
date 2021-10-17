@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-import sys
+import struct
 from datetime import datetime
 
 import piexif
@@ -27,6 +27,10 @@ def get_filepaths(path, recursive):
 
 def filter_filepaths(filepaths, allowed_ext):
     return [(fp, fn) for fp, fn in filepaths if os.path.splitext(fn)[-1] in allowed_ext]
+
+def make_new_exif(filename):
+    exif_dict = {'Exif': {piexif.ExifIFD.DateTimeOriginal: get_exif_datestr(filename)}}
+    return piexif.dump(exif_dict)
 
 def main(path, recursive, mod):
     logger.info('Validating arguments')
@@ -64,28 +68,32 @@ def main(path, recursive, mod):
 
         elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
             try:
-                exif_dict = piexif.load(filepath)
-                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
-                   logger.info('Exif date already exists, skipping')
-                else:
-                    try:
-                        exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
-                        exif_bytes = piexif.dump(exif_dict)
-                    except ValueError:
-                        logger.warning(f'Invalid exif, overwriting with new exif')
-                        exif_dict = {'Exif': {piexif.ExifIFD.DateTimeOriginal: get_exif_datestr(filename)}}
-                        exif_bytes = piexif.dump(exif_dict)
-                    piexif.insert(exif_bytes, filepath)
+                try:
+                    exif_dict = piexif.load(filepath)
+                    if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
+                        logger.info('Exif date already exists, skipping')
+                        continue
+                
+                    exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
+                    exif_bytes = piexif.dump(exif_dict)
+                except piexif.InvalidImageDataError:
+                    logger.warning(f'Invalid image data, skipping')
+                    continue
+                except ValueError:
+                    logger.warning(f'Invalid exif, overwriting with new exif')
+                    make_new_exif(filename)
+                except struct.error:
+                    logger.warning('Byte alignment issue in exif, overwriting with new exif')
+                    make_new_exif(filename)
+                piexif.insert(exif_bytes, filepath)
                 if mod:
                     date = get_datetime(filename)
                     modTime = date.timestamp()
                     os.utime(filepath, (modTime, modTime))
-            except piexif.InvalidImageDataError:
-                logger.warning(f'Invalid image data, skipping')
-                continue
             except IndexError:
                 logger.warning('Invalid filename format, skipping')
                 continue
+            
 
         
     logging.info('Finished processing files')
