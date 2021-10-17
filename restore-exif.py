@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import re
-import struct
 from datetime import datetime
 
 import piexif
@@ -97,9 +96,6 @@ def main(path, recursive, mod):
                 continue
             except ValueError:
                 logger.warning(f'Invalid exif, overwriting with new exif')
-                make_new_exif(filename)
-            except struct.error:
-                logger.warning('Byte alignment issue in exif, overwriting with new exif')
                 make_new_exif(filename)
             piexif.insert(exif_bytes, filepath)
             if mod:
