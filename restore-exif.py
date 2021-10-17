@@ -1,10 +1,14 @@
 import argparse
 import logging
 import os
+import re
 import struct
 from datetime import datetime
 
 import piexif
+
+img_filename_regex = re.compile(r'IMG-\d{8}-WA\d{4}\..+')
+vid_filename_regex = re.compile(r'VID-\d{8}-WA\d{4}\..+')
 
 
 def get_datetime(filename):
@@ -28,9 +32,19 @@ def get_filepaths(path, recursive):
 def filter_filepaths(filepaths, allowed_ext):
     return [(fp, fn) for fp, fn in filepaths if os.path.splitext(fn)[-1] in allowed_ext]
 
+
 def make_new_exif(filename):
     exif_dict = {'Exif': {piexif.ExifIFD.DateTimeOriginal: get_exif_datestr(filename)}}
     return piexif.dump(exif_dict)
+
+
+def is_whatsapp_img(filename):
+    return bool(img_filename_regex.match(filename))
+
+
+def is_whatsapp_vid(filename):
+    return bool(vid_filename_regex.match(filename))
+    
 
 def main(path, recursive, mod):
     logger.info('Validating arguments')
@@ -58,44 +72,41 @@ def main(path, recursive, mod):
         filepath = os.path.join(path, filename)
         logging.info(f'{i + 1:>{progress_digits}}/{num_files} - {filepath[abspath_len:]}')
         if filename.endswith('.mp4') or filename.endswith('.3gp'):
-            try: 
-                date = get_datetime(filename)
-            except IndexError:
-                logging.warning('Invalid filename format, skipping')
+            if not is_whatsapp_vid(filename):
+                logging.warning('File is not a valid WhatsApp video, skipping')
                 continue
+            date = get_datetime(filename)
             modTime = date.timestamp()
             os.utime(filepath, (modTime, modTime))
 
         elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
-            try:
-                try:
-                    exif_dict = piexif.load(filepath)
-                    if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
-                        logger.info('Exif date already exists, skipping')
-                        continue
-                
-                    exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
-                    exif_bytes = piexif.dump(exif_dict)
-                except piexif.InvalidImageDataError:
-                    logger.warning(f'Invalid image data, skipping')
-                    continue
-                except ValueError:
-                    logger.warning(f'Invalid exif, overwriting with new exif')
-                    make_new_exif(filename)
-                except struct.error:
-                    logger.warning('Byte alignment issue in exif, overwriting with new exif')
-                    make_new_exif(filename)
-                piexif.insert(exif_bytes, filepath)
-                if mod:
-                    date = get_datetime(filename)
-                    modTime = date.timestamp()
-                    os.utime(filepath, (modTime, modTime))
-            except IndexError:
-                logger.warning('Invalid filename format, skipping')
+            if not is_whatsapp_img(filename):
+                logging.warning('File is not a valid WhatsApp image, skipping')
                 continue
-            
-
         
+            try:
+                exif_dict = piexif.load(filepath)
+                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
+                    logger.info('Exif date already exists, skipping')
+                    continue
+            
+                exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(filename)
+                exif_bytes = piexif.dump(exif_dict)
+            except piexif.InvalidImageDataError:
+                logger.warning(f'Invalid image data, skipping')
+                continue
+            except ValueError:
+                logger.warning(f'Invalid exif, overwriting with new exif')
+                make_new_exif(filename)
+            except struct.error:
+                logger.warning('Byte alignment issue in exif, overwriting with new exif')
+                make_new_exif(filename)
+            piexif.insert(exif_bytes, filepath)
+            if mod:
+                date = get_datetime(filename)
+                modTime = date.timestamp()
+                os.utime(filepath, (modTime, modTime))
+
     logging.info('Finished processing files')
 
 
