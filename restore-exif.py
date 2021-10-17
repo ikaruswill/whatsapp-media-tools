@@ -55,24 +55,24 @@ def main(path, recursive, mod):
     
     logger.info('Listing files in target directory')
     filepaths = get_filepaths(path, recursive)
-    logging.info(f'Total files: {len(filepaths)}')
+    logger.info(f'Total files: {len(filepaths)}')
 
     allowed_extensions = set(['.mp4','.jpg','.3gp','.jpeg'])
     logger.info(f'Filtering for valid file extensions: {allowed_extensions}')
     filepaths = filter_filepaths(filepaths, allowed_ext=allowed_extensions)
     num_files = len(filepaths)
-    logging.info(f'Valid files: {num_files}')
+    logger.info(f'Valid files: {num_files}')
 
-    logging.info('Begin processing files')
+    logger.info('Begin processing files')
     abspath = os.path.abspath(path)
     progress_digits = len(str(num_files))
     abspath_len = len(abspath) + 1
     for i, (path, filename) in enumerate(filepaths):
         filepath = os.path.join(path, filename)
-        logging.info(f'{i + 1:>{progress_digits}}/{num_files} - {filepath[abspath_len:]}')
+        logger.info(f'{i + 1:>{progress_digits}}/{num_files} - {filepath[abspath_len:]}')
         if filename.endswith('.mp4') or filename.endswith('.3gp'):
             if not is_whatsapp_vid(filename):
-                logging.warning('File is not a valid WhatsApp video, skipping')
+                logger.warning('File is not a valid WhatsApp video, skipping')
                 continue
             date = get_datetime(filename)
             modTime = date.timestamp()
@@ -80,7 +80,7 @@ def main(path, recursive, mod):
 
         elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
             if not is_whatsapp_img(filename):
-                logging.warning('File is not a valid WhatsApp image, skipping')
+                logger.warning('File is not a valid WhatsApp image, skipping')
                 continue
         
             try:
@@ -103,7 +103,7 @@ def main(path, recursive, mod):
                 modTime = date.timestamp()
                 os.utime(filepath, (modTime, modTime))
 
-    logging.info('Finished processing files')
+    logger.info('Finished processing files')
 
 
 if __name__ == "__main__":
