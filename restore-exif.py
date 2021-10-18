@@ -115,12 +115,13 @@ def main(path, recursive, mod):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Restore discarded Exif date information in WhatsApp media based on the filename.')
+        description=('Restore discarded Exif date information in WhatsApp media based on the filename. '
+                     'For videos, only the created and modified dates are set.'))
     parser.add_argument('path', type=str, help='Path to WhatsApp media folder')
     parser.add_argument('-r', '--recursive', default=False,
                         action='store_true', help='Recursively process media')
     parser.add_argument('-m', '--mod', default=False,
-                        action='store_true', help='Set file modified date')
+                        action='store_true', help='Set file created/modified date on top of exif for images')
     args = parser.parse_args()
 
     logging.basicConfig(

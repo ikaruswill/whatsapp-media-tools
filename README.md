@@ -6,7 +6,7 @@ Restore WhatsApp Media exif dates from filenames
 ```
 usage: restore-exif.py [-h] [-r] [-m] path
 
-Restore discarded Exif date information in WhatsApp media based on the filename.
+Restore discarded Exif date information in WhatsApp media based on the filename. For videos, only the created and modified dates are set.
 
 positional arguments:
   path             Path to WhatsApp media folder
@@ -14,7 +14,7 @@ positional arguments:
 options:
   -h, --help       show this help message and exit
   -r, --recursive  Recursively process media
-  -m, --mod        Set file modified date
+  -m, --mod        Set file created/modified date on top of exif for images
 ```
 
 ### Finding duplicate media files
