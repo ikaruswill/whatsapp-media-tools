@@ -49,7 +49,7 @@ def check_for_duplicates(path, chunk_size, recursive, hash=hashlib.sha1):
             except (OSError,):
                 # not accessible (permissions, etc) - pass on
                 logger.warning(
-                    f'Error reading file: {os.path.join(dirpath, filename)}')
+                    f'Error reading file: {os.path.join(path, filename)}')
                 continue
     else:
         for dirpath, dirnames, filenames in os.walk(path):
