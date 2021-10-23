@@ -1,5 +1,5 @@
-# whatsapp-date-exif
-Restore WhatsApp Media exif dates from filenames
+# whatsapp-media-tools
+Python scripts to manage WhatsApp media backups for archival purposes.
 
 ## Usage
 ### Restoring exif dates
