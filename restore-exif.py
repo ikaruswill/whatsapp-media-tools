@@ -52,7 +52,7 @@ def is_whatsapp_vid(filename):
 
 def main(path, recursive, mod):
     logger.info('Validating arguments')
-    if not os.path.exists:
+    if not os.path.exists(path):
         raise FileNotFoundError('Path specified does not exist')
 
     if not os.path.isdir(path):
