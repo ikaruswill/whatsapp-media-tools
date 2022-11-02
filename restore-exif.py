@@ -149,4 +149,4 @@ if __name__ == "__main__":
         level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
     logger = logging.getLogger('restore-exif')
 
-    main(args.path, recursive=args.recursive, mod=args.mod, )
+    main(args.path, recursive=args.recursive, mod=args.mod, fix=args.fix)
