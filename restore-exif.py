@@ -1,5 +1,6 @@
 import argparse
 import logging
+from math import modf
 import os
 import re
 from datetime import datetime
@@ -14,10 +15,14 @@ def get_datetime(filename):
     date_str = filename.split('-')[1]
     return datetime.strptime(date_str, '%Y%m%d')
 
+def exif_datestr_to_datetime(exifdate):
+    return datetime.strptime(exifdate, "%Y:%m:%d %H:%M:%S")
 
 def get_exif_datestr(filename):
     return get_datetime(filename).strftime("%Y:%m:%d %H:%M:%S")
 
+def get_part_exif_datestr(filename):
+    return get_datetime(filename).strftime("%Y:%m:%d")
 
 def get_filepaths(path, recursive):
     all_filepaths = []
@@ -49,6 +54,14 @@ def is_whatsapp_img(filename):
 def is_whatsapp_vid(filename):
     return bool(vid_filename_regex.match(filename))
 
+def modFile(mod, filepath, filename, exifdate = None):
+    if mod:
+        if exifdate:
+            date = exif_datestr_to_datetime(exifdate)
+        else:
+            date = get_datetime(filename)
+        modTime = date.timestamp()
+        os.utime(filepath, (modTime, modTime))
 
 def main(path, recursive, mod):
     logger.info('Validating arguments')
@@ -91,24 +104,27 @@ def main(path, recursive, mod):
 
             try:
                 exif_dict = piexif.load(filepath)
-                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
-                    logger.info('Exif date already exists, skipping')
-                    continue
+                exif_date = exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal)
+                if exif_date:
+                    if get_part_exif_datestr(filename) == exif_date.split(" ")[0]:
+                        logger.info('Exif date already exists, has the wrong date')
+                    else:
+                        logger.info('Exif date already exists, skipping')
+                        modFile(mod, filepath, filename)
+                        continue
 
                 exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = get_exif_datestr(
                     filename)
                 exif_bytes = piexif.dump(exif_dict)
             except piexif.InvalidImageDataError:
                 logger.warning(f'Invalid image data, skipping')
+                modFile(mod, filepath, filename)
                 continue
             except ValueError:
                 logger.warning(f'Invalid exif, overwriting with new exif')
                 make_new_exif(filename)
             piexif.insert(exif_bytes, filepath)
-            if mod:
-                date = get_datetime(filename)
-                modTime = date.timestamp()
-                os.utime(filepath, (modTime, modTime))
+            modFile(mod, filepath, filename)
 
     logger.info('Finished processing files')
 
