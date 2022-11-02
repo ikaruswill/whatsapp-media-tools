@@ -63,7 +63,7 @@ def modFile(mod, filepath, filename, exifdate = None):
         modTime = date.timestamp()
         os.utime(filepath, (modTime, modTime))
 
-def main(path, recursive, mod):
+def main(path, recursive, mod, fix):
     logger.info('Validating arguments')
     if not os.path.exists(path):
         raise FileNotFoundError('Path specified does not exist')
@@ -108,6 +108,9 @@ def main(path, recursive, mod):
                 if exif_date:
                     if get_part_exif_datestr(filename) == exif_date.split(" ")[0]:
                         logger.info('Exif date already exists, has the wrong date')
+                        if not fix:
+                            modFile(mod, filepath, filename)
+                            continue
                     else:
                         logger.info('Exif date already exists, skipping')
                         modFile(mod, filepath, filename)
@@ -138,10 +141,12 @@ if __name__ == "__main__":
                         action='store_true', help='Recursively process media')
     parser.add_argument('-m', '--mod', default=False,
                         action='store_true', help='Set file created/modified date on top of exif for images')
+    parser.add_argument('-f', '--fix', default=False,
+                        action='store_true', help='If the exif date is different from the filename it will be replaced')
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
     logger = logging.getLogger('restore-exif')
 
-    main(args.path, recursive=args.recursive, mod=args.mod)
+    main(args.path, recursive=args.recursive, mod=args.mod, )
