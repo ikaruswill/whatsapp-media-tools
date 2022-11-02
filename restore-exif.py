@@ -106,7 +106,7 @@ def main(path, recursive, mod, fix):
                 exif_dict = piexif.load(filepath)
                 exif_date = exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal)
                 if exif_date:
-                    if get_part_exif_datestr(filename) == exif_date.split(" ")[0]:
+                    if get_part_exif_datestr(filename) == exif_date.split(b" ")[0]:
                         logger.info('Exif date already exists, has the wrong date')
                         if not fix:
                             modFile(mod, filepath, filename)
