@@ -50,7 +50,7 @@ def is_whatsapp_vid(filename):
     return bool(vid_filename_regex.match(filename))
 
 
-def main(path, recursive, mod):
+def main(path, recursive, mod, force):
     logger.info('Validating arguments')
     if not os.path.exists(path):
         raise FileNotFoundError('Path specified does not exist')
@@ -60,6 +60,7 @@ def main(path, recursive, mod):
 
     logger.info('Listing files in target directory')
     filepaths = get_filepaths(path, recursive)
+    # print(filepaths)
     logger.info(f'Total files: {len(filepaths)}')
 
     allowed_extensions = set(['.mp4', '.jpg', '.3gp', '.jpeg'])
@@ -91,7 +92,7 @@ def main(path, recursive, mod):
 
             try:
                 exif_dict = piexif.load(filepath)
-                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal):
+                if exif_dict['Exif'].get(piexif.ExifIFD.DateTimeOriginal) and not force:
                     logger.info('Exif date already exists, skipping')
                     continue
 
@@ -122,10 +123,12 @@ if __name__ == "__main__":
                         action='store_true', help='Recursively process media')
     parser.add_argument('-m', '--mod', default=False,
                         action='store_true', help='Set file created/modified date on top of exif for images')
+    parser.add_argument('-f', '--force', default=False,
+                        action='store_true', help='Overwrite existing exif date')
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
     logger = logging.getLogger('restore-exif')
 
-    main(args.path, recursive=args.recursive, mod=args.mod)
+    main(args.path, recursive=args.recursive, mod=args.mod, force=args.force)
